@@ -1,1 +1,9 @@
-[]
+[
+    {
+        "id": "user-admin-1",
+        "username": "admin",
+        "email": "admin@desafiomental.com",
+        "password": "Admin1234",
+        "role": "admin"
+    }
+]

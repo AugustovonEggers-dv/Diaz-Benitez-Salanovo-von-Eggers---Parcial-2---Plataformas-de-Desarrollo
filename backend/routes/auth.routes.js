@@ -44,7 +44,8 @@ router.post("/register", async (req, res) => {
         id: `user-${Date.now()}`,
         username: cleanUser,
         email: cleanEmail,
-        password
+        password,
+        role: "user"
     };
 
     users.push(newUser);
@@ -52,7 +53,7 @@ router.post("/register", async (req, res) => {
 
     return res.status(201).json({
         message: "Usuario registrado exitosamente.",
-        user: { id: newUser.id, username: newUser.username, email: newUser.email }
+        user: { id: newUser.id, username: newUser.username, email: newUser.email, role: newUser.role }
     });
 });
 
@@ -74,7 +75,7 @@ router.post("/login", (req, res) => {
 
     return res.json({
         message: "Inicio de sesión exitoso.",
-        user: { id: found.id, username: found.username, email: found.email }  
+        user: { id: found.id, username: found.username, email: found.email, role: found.role || "user" }  
     });
 });
 
