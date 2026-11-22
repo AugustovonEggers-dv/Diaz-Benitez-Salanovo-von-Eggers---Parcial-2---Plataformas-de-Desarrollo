@@ -11,18 +11,18 @@ function readJSON(filename, fallback = []) {
         const rawData = fs.readFileSync(filePath, "utf-8");
         return rawData ? JSON.parse(rawData) : fallback;
     } catch (error) {
-        console.error(`Error leyendo ${fileName}:`, error);
+        console.error(`Error leyendo ${filename}:`, error);
         return fallback;
     }
   }
 
-    function writeJSON(fileName, data) {
+    function writeJSON(filename, data) {
         try {
-            const filePath = path.join(__dirname, "..", "data", fileName);
+            const filePath = path.join(__dirname, "..", "data", filename);
             fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
             return true;
         } catch (error) {
-            console.error(`Error escribiendo ${fileName}:`, error);
+            console.error(`Error escribiendo ${filename}:`, error);
             return false;
     }
 }

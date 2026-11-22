@@ -1,9 +1,17 @@
 [
-    {
-        "id": "user-admin-1",
-        "username": "admin",
-        "email": "admin@desafiomental.com",
-        "password": "Admin1234",
-        "role": "admin"
-    }
+  {
+    "id": "user-admin-1",
+    "username": "admin",
+    "email": "admin@desafiomental.com",
+    "password": "Admin1234",
+    "role": "admin"
+  },
+  {
+    "id": "1795376371128",
+    "username": "AAAAAAA",
+    "email": "aaaa@gmail.com",
+    "password": "12341234",
+    "role": "user",
+    "createdAt": "2026-11-22T19:39:31.128Z"
+  }
 ]

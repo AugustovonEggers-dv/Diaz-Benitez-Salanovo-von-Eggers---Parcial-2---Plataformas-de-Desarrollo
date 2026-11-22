@@ -1,1 +1,192 @@
-[]
+[
+  {
+    "id": "game-1795378229921",
+    "username": "AAAAAAA",
+    "category": "Geografía",
+    "status": "completed",
+    "score": 40,
+    "correctAnswers": 4,
+    "wrongAnswers": 1,
+    "totalQuestions": 5,
+    "bestStreak": 4,
+    "durationSeconds": 20,
+    "answers": [
+      {
+        "questionId": "geo-10",
+        "text": "¿Cuál es la capital de Portugal?",
+        "category": "Geografía",
+        "options": [
+          "Oporto",
+          "Lisboa",
+          "Madrid",
+          "Sevilla"
+        ],
+        "correctIndex": 1,
+        "selectedIndex": 1,
+        "isCorrect": true,
+        "timedOut": false,
+        "points": 10
+      },
+      {
+        "questionId": "geo-11",
+        "text": "¿Cuál es el desierto cálido más grande del mundo?",
+        "category": "Geografía",
+        "options": [
+          "Gobi",
+          "Kalahari",
+          "Sahara",
+          "Atacama"
+        ],
+        "correctIndex": 2,
+        "selectedIndex": 2,
+        "isCorrect": true,
+        "timedOut": false,
+        "points": 10
+      },
+      {
+        "questionId": "geo-08",
+        "text": "¿Cuál es la montaña más alta del mundo sobre el nivel del mar?",
+        "category": "Geografía",
+        "options": [
+          "K2",
+          "Everest",
+          "Kilimanjaro",
+          "Aconcagua"
+        ],
+        "correctIndex": 1,
+        "selectedIndex": 1,
+        "isCorrect": true,
+        "timedOut": false,
+        "points": 10
+      },
+      {
+        "questionId": "geo-03",
+        "text": "¿En qué continente se encuentra Marruecos?",
+        "category": "Geografía",
+        "options": [
+          "África",
+          "Asia",
+          "Europa",
+          "Oceanía"
+        ],
+        "correctIndex": 0,
+        "selectedIndex": 0,
+        "isCorrect": true,
+        "timedOut": false,
+        "points": 10
+      },
+      {
+        "questionId": "geo-15",
+        "text": "¿Cuál es el país más extenso de América del Sur?",
+        "category": "Geografía",
+        "options": [
+          "Brasil",
+          "Argentina",
+          "Perú",
+          "Colombia"
+        ],
+        "correctIndex": 0,
+        "selectedIndex": 1,
+        "isCorrect": false,
+        "timedOut": false,
+        "points": 0
+      }
+    ],
+    "playedAt": "2026-11-22T20:10:29.921Z"
+  },
+  {
+    "id": "game-1795378605285",
+    "username": "admin",
+    "category": "Historia",
+    "status": "completed",
+    "score": 30,
+    "correctAnswers": 3,
+    "wrongAnswers": 2,
+    "totalQuestions": 5,
+    "bestStreak": 1,
+    "durationSeconds": 21,
+    "answers": [
+      {
+        "questionId": "hist-05",
+        "text": "¿Qué muro cayó en 1989?",
+        "category": "Historia",
+        "options": [
+          "El Muro de Berlín",
+          "La Gran Muralla",
+          "El Muro de Adriano",
+          "El Muro de los Lamentos"
+        ],
+        "correctIndex": 0,
+        "selectedIndex": 0,
+        "isCorrect": true,
+        "timedOut": false,
+        "points": 10
+      },
+      {
+        "questionId": "hist-04",
+        "text": "¿Quién fue el primer ser humano en viajar al espacio?",
+        "category": "Historia",
+        "options": [
+          "Neil Armstrong",
+          "Buzz Aldrin",
+          "John Glenn",
+          "Yuri Gagarin"
+        ],
+        "correctIndex": 3,
+        "selectedIndex": 0,
+        "isCorrect": false,
+        "timedOut": false,
+        "points": 0
+      },
+      {
+        "questionId": "hist-11",
+        "text": "¿En qué año se aprobó la Declaración de Independencia de Estados Unidos?",
+        "category": "Historia",
+        "options": [
+          "1492",
+          "1789",
+          "1776",
+          "1810"
+        ],
+        "correctIndex": 2,
+        "selectedIndex": 2,
+        "isCorrect": true,
+        "timedOut": false,
+        "points": 10
+      },
+      {
+        "questionId": "hist-06",
+        "text": "¿En qué país se originaron los Juegos Olímpicos antiguos?",
+        "category": "Historia",
+        "options": [
+          "Egipto",
+          "Grecia",
+          "Italia",
+          "Persia"
+        ],
+        "correctIndex": 1,
+        "selectedIndex": 0,
+        "isCorrect": false,
+        "timedOut": false,
+        "points": 0
+      },
+      {
+        "questionId": "hist-07",
+        "text": "¿En qué país se encuentran las pirámides de Guiza?",
+        "category": "Historia",
+        "options": [
+          "México",
+          "Egipto",
+          "Grecia",
+          "India"
+        ],
+        "correctIndex": 1,
+        "selectedIndex": 1,
+        "isCorrect": true,
+        "timedOut": false,
+        "points": 10
+      }
+    ],
+    "playedAt": "2026-11-22T20:16:45.285Z"
+  }
+]

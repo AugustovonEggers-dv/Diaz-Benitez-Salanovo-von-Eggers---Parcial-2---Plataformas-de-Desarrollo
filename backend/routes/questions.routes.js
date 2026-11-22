@@ -1,135 +1,148 @@
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
+
 const router = express.Router();
-const { readJSON, writeJSON } = require("../utils/storage");
-const { requireAdmin } = require("../middlewares/auth.middleware")
 
-function validateQuestionPayload({ category, text, options, correctIndex, points }) {
-    if (!category || !category.trim()) {
-        return "La categoría es obligatoria.";
+function resolveQuestionsFile() {
+  const candidates = [
+    path.join(__dirname, "../data/questions.json"),
+    path.join(__dirname, "../../data/questions.json"),
+    path.join(__dirname, "../../frontend/src/data/questions.json"),
+  ];
+
+  for (const filePath of candidates) {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, "utf-8").trim();
+      if (content && content !== "[]") {
+        return filePath;
+      }
     }
+  }
 
-    if (!text || text.trim().length < 5) {
-        return "El enunciado de una pregunta debe tener al menos 5 caracteres.";
-    }
-
-    if (!Array.isArray(options) || options.length !== 4 || options.some((opt) => !opt || !String(opt).trim())) {
-        return "Debes proporcionar exactamente 4 opciones válidas.";
-    }
-
-    const idx = Number(correctIndex);
-    if (!Number.isInteger(idx) || idx < 0 || idx > 3) {
-        return "El índice de la respuesta correcta debe estar entre 0 y 3. '0' es proporcional a la primera respuesta.";
-    }
-
-    if (points !== undefined && (isNaN(Number(points)) || Number(points) <= 0)) {
-        return "El puntaje debe ser un número mayor a 0";
-    }
-
-    return null;
+  return candidates[0];
 }
 
-// ==================== RUTAS PÚBLICAS / DE JUEGO ====================
+const QUESTIONS_FILE = resolveQuestionsFile();
+
+function getQuestions() {
+  try {
+    if (!fs.existsSync(QUESTIONS_FILE)) return [];
+    const raw = fs.readFileSync(QUESTIONS_FILE, "utf-8").trim();
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error("Error leyendo questions.json:", error);
+    return [];
+  }
+}
+
+function saveQuestions(questions) {
+  fs.mkdirSync(path.dirname(QUESTIONS_FILE), { recursive: true });
+  fs.writeFileSync(QUESTIONS_FILE, JSON.stringify(questions, null, 2), "utf-8");
+}
+
+console.log(`[Questions] ${getQuestions().length} preguntas cargadas desde: ${QUESTIONS_FILE}`);
+
 // GET /api/questions/categories
 router.get("/categories", (req, res) => {
-    const questions = readJSON("questions.json", []);
-    const categories = [...new Set(questions.map((q) => q.category))];
-    res.json(categories);
+  try {
+    const questions = getQuestions();
+    const categories = [...new Set(questions.map((q) => q.category).filter(Boolean))];
+    return res.json(categories);
+  } catch (error) {
+    return res.status(500).json({ error: "Error al obtener las categorías." });
+  }
 });
 
-// GET /api/questions/questions?category=Historia&count=5
-router.get("/questions", (req, res) => {
-    const { category, count = 5 } = req.query;
-    let questions = readJSON("questions.json", []);
+// GET /api/questions/game?category=...&count=...
+router.get("/game", (req, res) => {
+  try {
+    const { category, count } = req.query;
+    const limit = Number(count) || 5;
+    let pool = getQuestions();
 
     if (category && category !== "all") {
-        questions = questions.filter(
-            (q) => q.category.toLowerCase() === category.toLowerCase()
-    );
+      pool = pool.filter(
+        (q) => q.category && q.category.toLowerCase() === category.toLowerCase()
+      );
     }
 
-    const shuffled = [...questions].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, Number(count));
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    return res.json(shuffled.slice(0, limit));
+  } catch (error) {
+    return res.status(500).json({ error: "Error al preparar la partida." });
+  }
+});
 
-    res.json(selected);
+// GET /api/questions
+router.get("/", (req, res) => {
+  return res.json(getQuestions());
+});
 
+// POST /api/questions
+router.post("/", (req, res) => {
+  try {
+    const questions = getQuestions();
+    const { category, text, options, correctIndex, points } = req.body;
+
+    const newQuestion = {
+      id: req.body.id || `q-${Date.now()}`,
+      category,
+      text,
+      options,
+      correctIndex: Number(correctIndex),
+      points: Number(points) || 10,
+    };
+
+    questions.push(newQuestion);
+    saveQuestions(questions);
+    return res.status(201).json(newQuestion);
+  } catch (error) {
+    return res.status(500).json({ error: "Error al crear la pregunta." });
+  }
+});
+
+// PUT /api/questions/:id
+router.put("/:id", (req, res) => {
+  try {
+    const questions = getQuestions();
+    const index = questions.findIndex((q) => String(q.id) === String(req.params.id));
+
+    if (index === -1) {
+      return res.status(404).json({ error: "Pregunta no encontrada." });
+    }
+
+    questions[index] = {
+      ...questions[index],
+      ...req.body,
+      id: questions[index].id,
+      ...(req.body.correctIndex !== undefined && { correctIndex: Number(req.body.correctIndex) }),
+      ...(req.body.points !== undefined && { points: Number(req.body.points) }),
+    };
+
+    saveQuestions(questions);
+    return res.json(questions[index]);
+  } catch (error) {
+    return res.status(500).json({ error: "Error al actualizar la pregunta." });
+  }
+});
+
+// DELETE /api/questions/:id
+router.delete("/:id", (req, res) => {
+  try {
+    const questions = getQuestions();
+    const filtered = questions.filter((q) => String(q.id) !== String(req.params.id));
+
+    if (filtered.length === questions.length) {
+      return res.status(404).json({ error: "Pregunta no encontrada." });
+    }
+
+    saveQuestions(filtered);
+    return res.json({ message: "Pregunta eliminada correctamente." });
+  } catch (error) {
+    return res.status(500).json({ error: "Error al eliminar la pregunta." });
+  }
 });
 
 module.exports = router;
-
-// ==================== RUTAS EXCLUSIVAS DE ADMINISTRADOR ====================
-
-//GET /api/questions/all -> Lista completa sin mezclar para la gestión
-router.get("/all", requireAdmin, (req, res) => {
-    const questions = readJSON("questions.json", []);
-    res.json(questions);
-});
-
-//POST /api/questions -> Alta de nuea pregunta
-router.get("/", requireAdmin, (req, res) => {
-const validationError = validateQuestionPayload(req.body);
-if (validationError) {
-    return res.status(400).json({ error: validationError });
-}
-
-const { category, text, options, correctIndex, points } = req.body;
-const questions = readJSON("questions.json", []);
-
-const newQuestion = {
-    id: `q-${Date.now}`,
-    category: category.trim(),
-    text: text.trim(),
-    options: options.map((opt) => String(opt).trim()),
-    correctIndex: Number(correctIndex),
-    points: points ? Number(points) : 10
-}
-
-questions.push(newQuestion);
-writeJSON("questions.json", questions);
-
-res.status.json(newQuestion);
-});
-
-//PUT /api/questions/:id -> Modificación de pregunta existente
-router.put("/:id", requireAdmin, (req, res) => {
-const { id } = req.params;
-const validationError = validateQuestionPayload(req.body);
-if (validationError) {
-    return res.status(400).json({ error: validationError });
-}
-
-const questions = readJSON("questions.json", []);
-const index = questions.findIndex((q) => q.id === id);
-
-if (index === -1) {
-    return res.status(404).json({ error: "No se encontró la página solicitada" });
-}
-
-const { category, text, options, correctIndex, points } = req.body;
-questions[index] = {
-...questions[index],
-category: category.trim(),
-text: text.trim(),
-options: options.map((opt) => String(opt).trim()),
-correctIndex: Number(correctIndex),
-points: points ? Number(points) : questions[index].points
-};
-
-writeJSON("questions.json", questions);
-res.json(questions[index]);
-});
-
-// DELETE /api/questions/:id -> Eliminación de pregunta
-router.delete("/:id", requireAdmin, (req, res) => {
-const { id } = req.params;
-const questions = readJSON("questions.json", []);
-const exists = questions.some((q) => q.id === id);
-
-if (!exists) {
-    return res.status(404).json({ error: "No se encontró la página solicitada." });
-}
-
-const updated = questions.filter((q) => q.id !== id);
-writeJSON("questions.json", updated);
-
-res.json({ error: "Pregunta eliminada correctamente.", id});
-});

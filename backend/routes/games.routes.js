@@ -1,131 +1,162 @@
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
+
 const router = express.Router();
-const { readJSON, writeJSON } = require("../utils/storage");
+const GAMES_FILE = path.join(__dirname, "../data/games.json");
 
-//POST /api/games -> Guardar partida completada o abandonada
+function getGames() {
+  try {
+    if (!fs.existsSync(GAMES_FILE)) {
+      fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true });
+      fs.writeFileSync(GAMES_FILE, "[]", "utf-8");
+      return [];
+    }
+    const raw = fs.readFileSync(GAMES_FILE, "utf-8").trim();
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error("Error leyendo games.json:", error);
+    return [];
+  }
+}
 
+function saveGames(games) {
+  fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true });
+  fs.writeFileSync(GAMES_FILE, JSON.stringify(games, null, 2), "utf-8");
+}
+
+// POST /api/games
 router.post("/", (req, res) => {
-const gameData = req.body;
+  try {
+    const games = getGames();
+    const newGame = {
+      id: `game-${Date.now()}`,
+      ...req.body,
+      playedAt: req.body.playedAt || new Date().toISOString(),
+    };
 
-if (!gameData || !gameData.userId || !gameData.score || !gameData.category) {
-return res.status(400).json({ message: "Datos de partida incompletos." });
-}
-
-const games = readJSON("games.json", []);
-const newGame = {
-    id: gameData.id || `game-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-    username: gameData.username,
-    category: gameData.category,
-    status: gameData.status || "completed",
-    score: Number(gameData.score) || 0,
-    correctCount: Number(gameData.correctCount) || 0,
-    bestStreak: Number(gameData.bestStreak) || 0,
-    durationSeconds: Number(gameData.durationSeconds) || 0,
-    startedAt: gameData.startedAt || new Date().toISOString(),
-    finishedAt: gameData.finishedAt || new Date().toISOString(),
-    answers: Array.isArray(gameData.answers) ? gameData.answers : [],
-}
-
-games.push(newGame);
-writeJSON("games.json", games);
-
-res.status(201).json(newGame);
+    games.push(newGame);
+    saveGames(games);
+    return res.status(201).json(newGame);
+  } catch (error) {
+    return res.status(500).json({ error: "Error al guardar la partida." });
+  }
 });
 
-
-//GET /api/game/user/:username -> Historial ordenado del más reciente al más antiguo
+// GET /api/games/user/:username
 router.get("/user/:username", (req, res) => {
+  try {
     const { username } = req.params;
     const { category, status } = req.query;
-    const games = readJSON("games.json", []);
 
-    let userGames = games
-    .filter((g) => g.username.toLowerCase() === username.toLowerCase())
-    .sort((a, b) => new Date(b.finishedAt || b.startedAt ) - new Date(a.finishedAt || a.startedAt));
+    let userGames = getGames().filter(
+      (g) => g.username && g.username.toLowerCase() === username.toLowerCase()
+    );
 
     if (category && category !== "all") {
-        userGames = userGames.filter((g) => g.category === category);
+      userGames = userGames.filter(
+        (g) => g.category && g.category.toLowerCase() === category.toLowerCase()
+      );
     }
 
-    if (status && status !== "all") { 
-        userGames = userGames.filter((g) => g.status === status);
+    if (status && status !== "all") {
+      userGames = userGames.filter(
+        (g) => g.status && g.status.toLowerCase() === status.toLowerCase()
+      );
     }
 
-    res.json(userGames);
+    userGames.sort((a, b) => new Date(b.playedAt || 0) - new Date(a.playedAt || 0));
+    return res.json(userGames);
+  } catch (error) {
+    return res.status(500).json({ error: "Error al obtener el historial." });
+  }
 });
 
-//GET /api/games/stats/:username -> Estadísticas del usuario + por categoría
+// GET /api/games/stats/:username
 router.get("/stats/:username", (req, res) => {
+  try {
     const { username } = req.params;
-    const games = readJSON("games.json", []);
-    const questions = readJSON("questions.json", []);
+    const userGames = getGames().filter(
+      (g) => g.username && g.username.toLowerCase() === username.toLowerCase()
+    );
 
-    const history = games.filter((g) => g.username.toLowerCase() === username.toLowerCase());
-    const completed = history.filter((g) => g.status === "completed");
-    const abandoned = history.filter((g) => g.status === "abandoned");
+    const totalGames = userGames.length;
+    const totalPoints = userGames.reduce((acc, g) => acc + (Number(g.score ?? g.points) || 0), 0);
+    const totalCorrect = userGames.reduce((acc, g) => acc + (Number(g.correctAnswers ?? g.correct) || 0), 0);
+    const totalQuestions = userGames.reduce((acc, g) => acc + (Number(g.totalQuestions ?? g.total) || 0), 0);
+    const accuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+    const bestStreak = userGames.reduce(
+      (max, g) => Math.max(max, Number(g.bestStreak ?? g.maxStreak ?? g.streak) || 0),
+      0
+    );
 
-    const totalQuestions = completed.reduce((acc, g) => acc + g.answers.length, 0);
-    const totalCorrect = completed.reduce((acc, g) => acc + g.correctCount, 0);
-
-    const personalStats = {
-        completedGames: completed.length,
-        abandonedGames: abandoned.length,
-        totalQuestions,
-        globalPercentage: totalQuestions === 0 ? 0 : Math.round((totalCorrect / totalQuestions) * 100),
-        highestScore: completed.reduce((max, g) => Math.max(max, g.score), 0),
-        accumulatedScore: completed.reduce((sum, g) => sum + g.score, 0),
-        beststreak: completed.reduce((sum, g) => Math.max(max, g.bestStreak), 0)
-    }
-
-    //Estadísticas desglosadas por categoría
-
-    const categories  =  [...new Set(questions.map((q)  => q.category))]; 
-    const categoryStats = categories.map((cat) => {
-        const catAnswers = history
-        .filter((g) => g.category  ===  cat)
-        .flatMap((g) => g.answers);
-    
-    const correct = catAnswers.filter((a) =>  a.correct === true).length(); 
-    const total =  catAnswers.length; 
-
-    return {
-        category: cat,
-        correct, 
-        total,
-        percentage: total ===  0 ? 0 : Math.round((correct / total) *  100 )
-    }; 
+    return res.json({
+      username,
+      totalGames,
+      gamesPlayed: totalGames,
+      totalPoints,
+      totalScore: totalPoints,
+      totalCorrect,
+      totalQuestions,
+      accuracy,
+      bestStreak,
     });
-    
-    res.json({ personalStats, categoryStats });
+  } catch (error) {
+    return res.status(500).json({ error: "Error al calcular estadísticas." });
+  }
 });
 
-// GET /api/games/ranking -> Tabla de posiciones global (mejor puntaje y acumulado por usuario)
-
+// GET /api/games/ranking
 router.get("/ranking", (req, res) => {
-const games = readJSON("games.json", []);
-const completed = games.filter((g) => g.status === "completed");
+  try {
+    const games = getGames();
+    const map = new Map();
 
-const mapByUser = {};
-completed.forEach((g) => {
-    const key = g.username.toLowerCase();
- if (!mapByUser[key]) {
-      mapByUser[key] = {
+    for (const g of games) {
+      if (!g.username) continue;
+      const key = g.username.toLowerCase();
+      const current = map.get(key) || {
         username: g.username,
-        highestScore: 0,
+        totalPoints: 0,
         totalScore: 0,
-        gamesPlayed: 0
+        gamesPlayed: 0,
+        totalGames: 0,
+        totalCorrect: 0,
+        totalQuestions: 0,
+        bestStreak: 0,
       };
+
+      const pts = Number(g.score ?? g.points) || 0;
+      const correct = Number(g.correctAnswers ?? g.correct) || 0;
+      const total = Number(g.totalQuestions ?? g.total) || 0;
+      const streak = Number(g.bestStreak ?? g.maxStreak ?? g.streak) || 0;
+
+      current.totalPoints += pts;
+      current.totalScore += pts;
+      current.gamesPlayed += 1;
+      current.totalGames += 1;
+      current.totalCorrect += correct;
+      current.totalQuestions += total;
+      current.bestStreak = Math.max(current.bestStreak, streak);
+
+      map.set(key, current);
     }
-    mapByUser[key].highestScore = Math.max(mapByUser[key].highestScore, g.score);
-    mapByUser[key].totalScore += g.score;
-    mapByUser[key].gamesPlayed += 1;
-});
 
-const ranking = Object.values(mapByUser).sort(
-    (a, b) => b.highestScore - a.highestScore || b.totalScore - a.totalScore
-);
+    const ranking = Array.from(map.values())
+      .map((entry) => ({
+        ...entry,
+        accuracy:
+          entry.totalQuestions > 0
+            ? Math.round((entry.totalCorrect / entry.totalQuestions) * 100)
+            : 0,
+      }))
+      .sort((a, b) => b.totalPoints - a.totalPoints);
 
-res.json(ranking);
+    return res.json(ranking);
+  } catch (error) {
+    return res.status(500).json({ error: "Error al obtener el ranking." });
+  }
 });
 
 module.exports = router;
