@@ -152,7 +152,7 @@ export default function Dashboard() {
             Estadísticas por categoría
           </Link>
           <Link to="/ranking" className="button secondary">
-            Ranking global
+            {"Ranking global"}
           </Link>
           {isAdmin && (
             <Link to="/admin/preguntas" className="button">
