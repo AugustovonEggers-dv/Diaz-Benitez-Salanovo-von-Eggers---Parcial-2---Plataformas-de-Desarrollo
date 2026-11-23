@@ -123,8 +123,7 @@ a:hover { color: var(--wine-dark); }
 .header-nav .inline-link:hover,
 .header-nav .inline-link:focus-visible {
   color: var(--wine);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  text-decoration: none;
 }
 
 .header-nav .inline-link + .inline-link::before {
