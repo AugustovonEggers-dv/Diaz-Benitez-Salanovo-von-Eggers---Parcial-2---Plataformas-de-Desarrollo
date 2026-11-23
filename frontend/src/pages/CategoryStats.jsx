@@ -97,7 +97,10 @@ export default function CategoryStats() {
         getUserHistory(user.username),
         getCategories(),
       ]);
-      setStats(summary);
+      const completedGames = games.filter(
+        (game) => String(game.status || "").trim().toLowerCase() === "completed"
+      ).length;
+      setStats({ ...summary, completedGames });
       setCategoryStats(
         buildCategoryStats(games, Array.isArray(categories) ? categories : [])
       );

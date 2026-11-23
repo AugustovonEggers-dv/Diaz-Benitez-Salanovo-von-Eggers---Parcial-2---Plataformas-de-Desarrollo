@@ -82,6 +82,9 @@ router.get("/stats/:username", (req, res) => {
     );
 
     const totalGames = userGames.length;
+    const completedGames = userGames.filter(
+      (g) => String(g.status || "").toLowerCase() === "completed"
+    ).length;
     const totalPoints = userGames.reduce((acc, g) => acc + (Number(g.score ?? g.points) || 0), 0);
     const totalCorrect = userGames.reduce((acc, g) => acc + (Number(g.correctAnswers ?? g.correct) || 0), 0);
     const totalQuestions = userGames.reduce((acc, g) => acc + (Number(g.totalQuestions ?? g.total) || 0), 0);
@@ -95,6 +98,7 @@ router.get("/stats/:username", (req, res) => {
       username,
       totalGames,
       gamesPlayed: totalGames,
+      completedGames,
       totalPoints,
       totalScore: totalPoints,
       totalCorrect,

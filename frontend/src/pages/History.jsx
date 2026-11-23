@@ -47,9 +47,15 @@ export default function History() {
     setFilters((prev) => ({ ...prev, [name]: value }));
   }
 
-  function formatDate(isoString) {
-    if (!isoString) return "-";
-    return new Date(isoString).toLocaleString("es-AR", {
+  function formatDate(game) {
+    const idTimestamp = /^game-(\d+)$/.exec(game.id)?.[1];
+    const dateValue = game.playedAt || game.createdAt || game.date || (idTimestamp ? Number(idTimestamp) : null);
+    if (!dateValue) return "-";
+
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "-";
+
+    return date.toLocaleString("es-AR", {
       dateStyle: "short",
       timeStyle: "short",
     });
@@ -153,7 +159,7 @@ export default function History() {
                   return (
                     <tr key={game.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
                       <td style={{ padding: "12px 8px" }}>
-                        {formatDate(game.createdAt || game.date)}
+                        {formatDate(game)}
                       </td>
                       <td style={{ padding: "12px 8px" }}>
                         <strong>{game.category}</strong>
