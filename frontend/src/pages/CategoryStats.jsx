@@ -1,12 +1,90 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { getUserStats } from "../services/gameService";
+import { getCategories } from "../services/questionService";
+import { getUserHistory, getUserStats } from "../services/gameService";
+
+const MIXED_CATEGORY_NAMES = new Set([
+  "all",
+  "todas",
+  "mixto",
+  "mixto (todas las categorías)",
+]);
+
+function normalizeCategory(category) {
+  return String(category || "").trim().toLocaleLowerCase("es");
+}
+
+function buildCategoryStats(games, categories) {
+  const byCategory = new Map();
+
+  categories.forEach((category) => {
+    const normalized = normalizeCategory(category);
+    if (normalized && !byCategory.has(normalized)) {
+      byCategory.set(normalized, {
+        category,
+        totalAnswers: 0,
+        correctAnswers: 0,
+      });
+    }
+  });
+
+  function findCategory(category) {
+    const normalized = normalizeCategory(category);
+    if (!normalized || MIXED_CATEGORY_NAMES.has(normalized)) return null;
+
+    if (!byCategory.has(normalized)) {
+      byCategory.set(normalized, {
+        category: String(category).trim(),
+        totalAnswers: 0,
+        correctAnswers: 0,
+      });
+    }
+
+    return byCategory.get(normalized);
+  }
+
+  games.forEach((game) => {
+    const answers = Array.isArray(game.answers) ? game.answers : [];
+
+    if (answers.length > 0) {
+      answers.forEach((answer) => {
+        const category = findCategory(answer.category || game.category);
+        if (!category) return;
+
+        category.totalAnswers += 1;
+        const hasCorrectFlag = typeof answer.isCorrect === "boolean";
+        const isCorrect = hasCorrectFlag
+          ? answer.isCorrect
+          : answer.selectedIndex != null &&
+            answer.correctIndex != null &&
+            Number(answer.selectedIndex) === Number(answer.correctIndex);
+        if (isCorrect) category.correctAnswers += 1;
+      });
+      return;
+    }
+
+    const category = findCategory(game.category);
+    if (!category) return;
+
+    category.totalAnswers += Number(game.totalQuestions ?? game.total) || 0;
+    category.correctAnswers += Number(game.correctAnswers ?? game.correct) || 0;
+  });
+
+  return Array.from(byCategory.values()).map((category) => ({
+    ...category,
+    accuracy:
+      category.totalAnswers > 0
+        ? Math.round((category.correctAnswers / category.totalAnswers) * 100)
+        : null,
+  }));
+}
 
 export default function CategoryStats() {
   const { user } = useAuth();
 
   const [stats, setStats] = useState(null);
+  const [categoryStats, setCategoryStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -14,8 +92,15 @@ export default function CategoryStats() {
     setLoading(true);
     setError("");
     try {
-      const data = await getUserStats(user.username);
-      setStats(data);
+      const [summary, games, categories] = await Promise.all([
+        getUserStats(user.username),
+        getUserHistory(user.username),
+        getCategories(),
+      ]);
+      setStats(summary);
+      setCategoryStats(
+        buildCategoryStats(games, Array.isArray(categories) ? categories : [])
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -47,16 +132,6 @@ export default function CategoryStats() {
       </section>
     );
   }
-
-  // Normalizamos byCategory por si viene como array o como objeto diccionario
-  const categoryList = Array.isArray(stats?.byCategory)
-    ? stats.byCategory
-    : stats?.byCategory
-    ? Object.entries(stats.byCategory).map(([category, values]) => ({
-        category,
-        ...values,
-      }))
-    : [];
 
   return (
     <div className="stack">
@@ -92,47 +167,78 @@ export default function CategoryStats() {
       </section>
 
       <section className="card">
-        <h2>Desglose por categoría</h2>
+        <p className="eyebrow">Por categoría</p>
+        <h2>Precisión en cada categoría</h2>
+        <p className="muted">
+          Porcentaje de respuestas correctas en tus partidas registradas.
+        </p>
 
-        {categoryList.length === 0 ? (
+        {categoryStats.length === 0 ? (
           <div style={{ marginTop: "12px" }}>
             <p className="muted">
-              Todavía no tenés partidas registradas para mostrar estadísticas por categoría.
+              Todavía no hay categorías disponibles para mostrar.
             </p>
             <Link to="/" className="button" style={{ marginTop: "12px", display: "inline-block" }}>
               Comenzar a jugar
             </Link>
           </div>
         ) : (
-          <div style={{ overflowX: "auto", marginTop: "16px" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-              <thead>
-                <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
-                  <th style={{ padding: "12px 8px" }}>Categoría</th>
-                  <th style={{ padding: "12px 8px" }}>Partidas</th>
-                  <th style={{ padding: "12px 8px" }}>Puntaje</th>
-                  <th style={{ padding: "12px 8px" }}>Aciertos</th>
-                  <th style={{ padding: "12px 8px" }}>Precisión</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoryList.map((item) => (
-                  <tr key={item.category} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                    <td style={{ padding: "12px 8px" }}>
-                      <strong>{item.category}</strong>
-                    </td>
-                    <td style={{ padding: "12px 8px" }}>{item.gamesPlayed ?? item.games ?? 0}</td>
-                    <td style={{ padding: "12px 8px" }}>{item.totalScore ?? item.score ?? 0} pts</td>
-                    <td style={{ padding: "12px 8px" }}>
-                      {item.correctAnswers ?? 0} / {item.totalQuestions ?? 0}
-                    </td>
-                    <td style={{ padding: "12px 8px" }}>
-                      <strong>{item.accuracy ?? 0}%</strong>
-                    </td>
-                  </tr>
+          <div
+            className="category-chart-scroll"
+            role="region"
+            aria-label="Gráfico de precisión por categoría"
+            tabIndex={0}
+          >
+            <div
+              className="category-chart"
+              style={{ "--category-count": categoryStats.length }}
+            >
+              <div className="chart-y-axis" aria-hidden="true">
+                {[100, 75, 50, 25, 0].map((tick) => (
+                  <span key={tick}>{tick}%</span>
                 ))}
-              </tbody>
-            </table>
+              </div>
+              <div className="chart-main">
+                <div className="chart-plot">
+                  <div className="chart-columns" role="list">
+                    {categoryStats.map((item) => {
+                      const value = item.accuracy ?? 0;
+                      const resultLabel = item.accuracy == null
+                        ? "Sin partidas"
+                        : `${item.accuracy}%`;
+
+                      return (
+                        <div
+                          className="chart-column"
+                          role="listitem"
+                          aria-label={`${item.category}: ${resultLabel}`}
+                          key={item.category}
+                          style={{ "--bar-value": `${value}%` }}
+                        >
+                          <span className="chart-value">
+                            {resultLabel}
+                          </span>
+                          {item.accuracy != null && (
+                            <div
+                              className="chart-bar"
+                              style={{ height: `${Math.max(value, 1)}%` }}
+                              aria-hidden="true"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="chart-category-labels" aria-hidden="true">
+                  {categoryStats.map((item) => (
+                    <span className="chart-category-label" key={item.category}>
+                      {item.category}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </section>
