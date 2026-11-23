@@ -103,6 +103,11 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+        <footer className="site-footer">
+          <div className="container">
+            <p>Desafío Mental · Un desafío a la vez</p>
+          </div>
+        </footer>
       </BrowserRouter>
     </AuthProvider>
   );

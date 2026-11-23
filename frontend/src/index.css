@@ -86,15 +86,53 @@ a:hover { color: var(--wine-dark); }
 
 .site-header {
   position: relative;
-  display: flex;
-  min-height: 76px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid #75696a;
+  display: block;
+  min-height: 0;
+  margin-bottom: 22px;
 }
 
 .site-header::after { content: none; }
+
+.header-inner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(14px, 2vw, 28px);
+  padding-top: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.header-nav {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 14px;
+}
+
+.header-nav .inline-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--wine-dark);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.header-nav .inline-link:hover,
+.header-nav .inline-link:focus-visible {
+  color: var(--wine);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.header-nav .inline-link + .inline-link::before {
+  margin-right: 14px;
+  color: var(--blue-deep);
+  content: "|";
+  font-weight: 400;
+}
 
 .brand {
   display: flex;
@@ -125,7 +163,9 @@ a:hover { color: var(--wine-dark); }
 .header-user { font-size: 0.9rem; }
 
 .app-main { flex: 1; padding: 30px 0 46px; }
-.site-footer { padding: 20px 0; color: var(--muted); font-size: 0.84rem; text-align: center; }
+.stack { display: grid; gap: 12px; }
+.site-footer { margin-top: 14px; padding: 0 0 18px; color: var(--muted); font-size: 0.84rem; text-align: center; }
+.site-footer .container { padding-top: 14px; border-top: 1px solid var(--line); }
 .site-footer p { margin: 0; }
 
 .card {
@@ -306,6 +346,8 @@ form[action*="logout"] button, form[action*="cerrar-sesion"] button,
 
 @media (max-width: 800px) {
   .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .header-inner { grid-template-columns: minmax(0, 1fr) auto; }
+  .header-nav { grid-column: 1 / -1; justify-content: flex-start; }
 }
 
 @media (max-width: 560px) {
@@ -316,7 +358,10 @@ form[action*="logout"] button, form[action*="cerrar-sesion"] button,
   .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .game-topline, .section-heading { flex-direction: column; }
   .toolbar .field { min-width: 100%; }
-  .site-header { min-height: 66px; }
+  .site-header { margin-bottom: 16px; }
+  .header-inner { grid-template-columns: minmax(0, 1fr); gap: 10px; padding-top: 12px; padding-bottom: 15px; }
+  .header-nav { grid-column: auto; gap: 8px 10px; }
+  .header-nav .inline-link + .inline-link::before { margin-right: 10px; }
   .brand { font-size: 1rem; }
 }
 
