@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getUserHistory } from "../services/gameService";
@@ -9,6 +9,7 @@ export default function History() {
 
   const [games, setGames] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [expandedGameId, setExpandedGameId] = useState(null);
   const [filters, setFilters] = useState({
     category: "all",
     status: "all",
@@ -151,12 +152,14 @@ export default function History() {
                   <th style={{ padding: "12px 8px" }}>Aciertos</th>
                   <th style={{ padding: "12px 8px" }}>Mejor racha</th>
                   <th style={{ padding: "12px 8px" }}>Duración</th>
+                  <th style={{ padding: "12px 8px" }}>Detalle</th>
                 </tr>
               </thead>
               <tbody>
                 {games.map((game) => {
                   const isCompleted = game.status === "completed";
                   return (
+                    <Fragment key={game.id}>
                     <tr key={game.id} style={{ borderBottom: "1px solid #e2e8f0" }}>
                       <td style={{ padding: "12px 8px" }}>
                         {formatDate(game)}
@@ -186,7 +189,62 @@ export default function History() {
                       </td>
                       <td style={{ padding: "12px 8px" }}>{game.bestStreak ?? 0}</td>
                       <td style={{ padding: "12px 8px" }}>{game.durationSeconds ?? 0}s</td>
+                      <td style={{ padding: "12px 8px" }}>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          aria-expanded={expandedGameId === game.id}
+                          onClick={() => setExpandedGameId((current) => current === game.id ? null : game.id)}
+                        >
+                          {expandedGameId === game.id ? "Ocultar" : "Ver respuestas"}
+                        </button>
+                      </td>
                     </tr>
+                    {expandedGameId === game.id && (
+                      <tr>
+                        <td colSpan={8} style={{ padding: "16px 8px" }}>
+                          <h3 style={{ marginTop: 0 }}>Detalle de respuestas</h3>
+                          {Array.isArray(game.answers) && game.answers.length > 0 ? (
+                            <div className="form-stack">
+                              {game.answers.map((answer, index) => {
+                                const options = Array.isArray(answer.options) ? answer.options : [];
+                                const selectedAnswer = answer.timedOut
+                                  ? "Tiempo agotado"
+                                  : options[answer.selectedIndex] ?? "Sin responder";
+                                const correctAnswer = options[answer.correctIndex] ?? "No disponible";
+                                const isCorrect = typeof answer.isCorrect === "boolean"
+                                  ? answer.isCorrect
+                                  : answer.selectedIndex != null && answer.correctIndex != null &&
+                                    Number(answer.selectedIndex) === Number(answer.correctIndex);
+
+                                return (
+                                  <div
+                                    key={answer.questionId || index}
+                                    style={{
+                                      padding: "12px 16px",
+                                      borderRadius: "12px",
+                                      border: `1px solid ${isCorrect ? "#86efac" : "#fca5a5"}`,
+                                      backgroundColor: isCorrect ? "#f0fdf4" : "#fef2f2",
+                                    }}
+                                  >
+                                    <p style={{ fontWeight: 600, marginBottom: "4px" }}>
+                                      {index + 1}. {answer.text || "Pregunta sin texto"}
+                                    </p>
+                                    <p className="muted" style={{ margin: 0, fontSize: "0.9rem" }}>
+                                      Tu respuesta: <strong>{selectedAnswer}</strong>
+                                      {" · "}Correcta: <strong>{correctAnswer}</strong>
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="muted">Esta partida no tiene respuestas guardadas.</p>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })}
               </tbody>
