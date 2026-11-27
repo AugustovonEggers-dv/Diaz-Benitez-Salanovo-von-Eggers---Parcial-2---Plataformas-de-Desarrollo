@@ -1,0 +1,71 @@
+================================================================================
+DESAFIO MENTAL - INSTRUCCIONES DE INSTALACION, CONFIGURACION Y EJECUCION
+================================================================================
+
+1. REQUISITOS PREVIOS
+--------------------------------------------------------------------------------
+- Node.js (version 18 o superior) instalado en el sistema.
+- npm (incluido con Node.js).
+- Un navegador web moderno (Chrome, Firefox, Edge, etc.).
+
+
+2. ESTRUCTURA DEL PROYECTO
+--------------------------------------------------------------------------------
+El repositorio se encuentra dividido en dos carpetas principales:
+
+- /backend   -> API REST desarrollada con Node.js y Express. Persistencia en JSON.
+- /frontend  -> Aplicacion web desarrollada con React y Vite.
+
+
+3. CONFIGURACION E INSTALACION DEL BACKEND
+--------------------------------------------------------------------------------
+1. Abrir una terminal y ubicarse en la carpeta del servidor:
+   cd backend
+
+2. Instalar las dependencias del proyecto:
+   npm install
+
+3. Verificar los archivos de persistencia en la carpeta "backend/data/":
+   - questions.json  (contiene el banco de preguntas por categoria)
+   - users.json      (almacena los usuarios registrados; si no existe, se crea automaticamente)
+   - games.json      (almacena el historial de partidas; si no existe, se crea automaticamente)
+
+4. Iniciar el servidor backend:
+   npm start
+
+   El servidor quedara escuchando en: http://localhost:3000
+
+
+4. CONFIGURACION E INSTALACION DEL FRONTEND
+--------------------------------------------------------------------------------
+1. Abrir una segunda terminal (manteniendo el backend en ejecucion) y ubicarse en la carpeta del cliente:
+   cd frontend
+
+2. Instalar las dependencias del proyecto:
+   npm install
+
+3. (Opcional) Configuracion de variables de entorno:
+   Si el proyecto utiliza archivo ".env" en la carpeta "frontend/", verificar que apunte al puerto del backend:
+   VITE_API_URL=http://localhost:3000/api
+
+4. Iniciar la aplicacion en modo desarrollo:
+   npm run dev
+
+   La aplicacion quedara disponible en: http://localhost:5173
+
+
+5. USO DE LA APLICACION Y CREDENCIALES DE PRUEBA
+--------------------------------------------------------------------------------
+1. Ingresar desde el navegador a http://localhost:5173.
+2. Registrar un usuario nuevo desde la pantalla de registro o ingresar con una cuenta existente.
+3. Roles del sistema:
+   - Jugador (role: "user"): puede configurar y jugar partidas, consultar su historial, revisar sus estadisticas y ver el ranking general.
+   - Administrador (role: "admin"): ademas de jugar, tiene acceso a la seccion "Gestionar preguntas" para crear, editar y eliminar preguntas.
+
+   Nota: Para asignar permisos de administrador a un usuario registrado, editar su propiedad "role" de "user" a "admin" dentro de "backend/data/users.json".
+
+
+6. DETENCION DE LOS SERVICIOS
+--------------------------------------------------------------------------------
+Para detener tanto el backend como el frontend, presionar "Ctrl + C" en cada terminal activa.
+================================================================================
